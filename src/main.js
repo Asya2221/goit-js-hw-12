@@ -23,13 +23,12 @@ let query = '';
 let totalShow = 0;
 
 form.addEventListener('submit', handleSubmit);
-
 btnLoadMore.addEventListener('click', handleClick);
 
 function handleSubmit(event) {
   event.preventDefault();
 
-  query = input.value.trim().toLowerCase(); // Взяти текст з input і привести до нижнього регістру
+  query = input.value.trim().toLowerCase();
   page = 1;
   totalShow = 0;
 
@@ -42,8 +41,9 @@ function handleSubmit(event) {
     return;
   }
 
-  clearGallery(); // Очистити старі картинки
-  showLoader(); // Показати індикатор завантаження
+  clearGallery();
+  hideLoadMoreButton(); // скрыть кнопку до загрузки
+  showLoader();
 
   getImagesByQuery(query, page)
     .then(data => {
@@ -57,16 +57,20 @@ function handleSubmit(event) {
         return;
       }
 
-      createGallery(data.hits); // data.hits — це масив картинок
+      createGallery(data.hits);
       totalShow += data.hits.length;
 
       if (totalShow >= data.totalHits) {
         hideLoadMoreButton();
+        iziToast.info({
+          title: 'Info',
+          message: `We're sorry, but you've reached the end of search results.`,
+          position: 'topRight',
+        });
       } else {
         showLoadMoreButton();
       }
     })
-
     .catch(error => {
       iziToast.error({
         title: 'Error',
@@ -75,23 +79,22 @@ function handleSubmit(event) {
       });
     })
     .finally(() => {
-      hideLoader(); // Приховати лоадер у будь-якому випадку
+      hideLoader();
     });
 }
 
 async function handleClick() {
   page += 1;
+  hideLoadMoreButton(); // скрыть кнопку на время загрузки
+  showLoader(); // показать лоадер
+
   try {
     const dataGallery = await getImagesByQuery(query, page);
-    console.log(dataGallery);
-
     createGallery(dataGallery.hits);
 
     const firstCard = document.querySelector('.gallery-item');
-
     if (firstCard) {
       const { height: cardHeight } = firstCard.getBoundingClientRect();
-
       window.scrollBy({
         top: cardHeight * 2,
         behavior: 'smooth',
@@ -107,6 +110,8 @@ async function handleClick() {
         message: `We're sorry, but you've reached the end of search results.`,
         position: 'topRight',
       });
+    } else {
+      showLoadMoreButton(); // показываем обратно
     }
   } catch (error) {
     iziToast.error({
@@ -114,5 +119,7 @@ async function handleClick() {
       message: `Something went wrong: ${error.message}`,
       position: 'topRight',
     });
+  } finally {
+    hideLoader(); // скрыть лоадер
   }
 }
